@@ -18,7 +18,7 @@
 
 import setuptools
 
-from swsync.openstack.common import setup
+from swstat.openstack.common import setup
 
 name = 'swift-account-stats'
 
