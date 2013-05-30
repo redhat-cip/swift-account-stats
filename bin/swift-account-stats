@@ -3,6 +3,7 @@
 # Copyright (C) 2013 eNovance SAS <licensing@enovance.com>
 #
 # Author: Chmouel Boudjnah <chmouel@enovance.com>
+# Author: Fabien Boucher <fabien.boucher@enovance.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -15,6 +16,7 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+
 """Simple script to get a global usage of a swift cluster. Install the
 pypi module ```hurry.filesize``` to get prettier size output (by
 default in bytes).
@@ -26,6 +28,8 @@ Third argument is the ADMIN_PASSWORD
 
 """
 import argparse
+import csv
+import eventlet
 
 import keystoneclient.v2_0.client
 import swiftclient
@@ -34,13 +38,16 @@ import sys
 
 MAX_RETRIES = 10
 
+eventlet.patcher.monkey_patch()
+
+#TODO(fbo): Could add content_type repartition
+
 # Nicer filesize reporting make it optional
 try:
     import hurry.filesize
     prettysize = hurry.filesize.size
 except ImportError:
     prettysize = None
-
 
 def get_swift_auth(auth_url, tenant, user, password):
     """Get swift connexion from args."""
@@ -50,16 +57,173 @@ def get_swift_auth(auth_url, tenant, user, password):
         password,
         auth_version=2).get_auth()
 
+def browse_account(cnx):
+    head, containers = cnx.get_account(full_listing=True)
+    account_size = int(head['x-account-bytes-used'])
+    container_names = [cont['name'] for cont in containers]
+    container_sizes = [int(cont['bytes']) for cont in containers]
+    return account_size, container_names, container_sizes
+
+def browse_container(cnx, container):
+    head, objects = cnx.get_container(container, full_listing=True)
+    container_size = int(head['x-container-bytes-used'])
+    object_names = [obj['name'] for obj in objects]
+    object_sizes = [int(obj['bytes']) for obj in objects]
+    return container_size, object_names, object_sizes
+
+def retrieve_account_stats(tenant, bare_storage_url, os_options, admin_token):
+    tenant_storage_url = bare_storage_url + tenant.id
+    cnx = swiftclient.client.Connection(
+        authurl=None, user=None, key=None,
+        preauthurl=tenant_storage_url,
+        os_options=os_options,
+        preauthtoken=admin_token,
+        retries=MAX_RETRIES)
+
+    account_size, container_names, container_sizes = browse_account(cnx)
+    mi = None
+    ma = None
+    av = None
+    if container_names:
+        mi = min(container_sizes)
+        ma = max(container_sizes)
+        av = sum(container_sizes) / len(container_names)
+    if isinstance(tenant.name, unicode):
+        name = tenant.name.encode('utf-8')
+    else:
+        name = tenant.name
+    account_stats = {'account_name': name,
+                     'account_size': account_size,
+                     'container_amount': len(container_names),
+                     'container_max_size': ma,
+                     'container_min_size': mi,
+                     'container_avg_size': av,
+                    }
+
+    containers_stats = []
+    for container in container_names:
+        container_size, object_names, \
+        object_sizes = browse_container(cnx, container)
+        if isinstance(container, unicode):
+            name = container.encode('utf-8')
+        else:
+            name = container
+        mi = None
+        ma = None
+        av = None
+        if object_names:
+            mi = min(object_sizes)
+            ma = max(object_sizes)
+            av = sum(object_sizes) / len(object_names)
+        container_details = {'container_name': name,
+                             'container_size': container_size,
+                             'object_sizes': object_sizes,
+                             'object_amount': len(object_names),
+                             'object_max_size': ma,
+                             'object_min_size': mi,
+                             'object_avg_size': av,
+                            }
+        containers_stats.append(container_details)
+    return account_stats, containers_stats
+    
+def csv_write(fd, o_order, parsed_stats):
+    writer = csv.DictWriter(fd, o_order, extrasaction='ignore')
+    writer.writeheader()
+    writer.writerows(parsed_stats)
+
+def prettyfy_size(parsed_stats, raw_output):
+    if prettysize and not raw_output:
+        temp_stats = []
+        for s in parsed_stats:
+            t_s = {k: prettysize(v) for k, v in s.iteritems() if k.endswith('_size')}
+            t_s.update({k: v for k, v in s.iteritems() if not k.endswith('_size')})
+            temp_stats.append(t_s)
+        return temp_stats
+    return parsed_stats
+
+def report_detailed_stats(stats, raw_output, path=None):
+    o_order = ('account_name', 'container_amount', 'container_max_size', 'container_min_size',
+               'container_avg_size', 'container_name', 'object_amount', 'object_max_size', 'object_min_size',
+               'object_avg_size')
+    parsed_stats = []
+    for xstat in stats:
+        account_stats = xstat[0]
+        containers_stats = xstat[1]
+        for cstat in containers_stats:
+            s = {}
+            s.update(account_stats)
+            s.update(cstat)
+            parsed_stats.append(s)
+    parsed_stats = prettyfy_size(parsed_stats, raw_output)
+    if not path:
+        fd = sys.stdout
+        csv_write(fd, o_order, parsed_stats)
+    else:
+        with open(path, "w") as fd:
+            csv_write(fd, o_order, parsed_stats)
+        fd.close()
+
+def report_global_stats(stats, raw_output, path=None):
+    o_order = ('account_amount', 'account_max_size', 'account_min_size', 'account_avg_size',
+               'total_size', 'container_amount', 'container_max_size', 'container_min_size',
+               'container_avg_size', 'object_amount', 'object_max_size', 'object_min_size',
+               'object_avg_size')
+    account_sizes = []
+    container_sizes = []
+    object_sizes = []
+    a_am = 0
+    t_s = 0
+    c_am = 0
+    for xstat in stats:
+        account_stats = xstat[0]
+        containers_stats = xstat[1]
+        a_am += 1
+        t_s += account_stats['account_size']
+        account_sizes.append(account_stats['account_size'])
+        for cstat in containers_stats:
+            c_am += 1
+            container_sizes.append(cstat['container_size'])
+            object_sizes.extend(cstat['object_sizes'])
+    a_ma_s = max(account_sizes)
+    a_mi_s = min(account_sizes)
+    a_avg_s = sum(account_sizes) / a_am
+    c_ma_s = max(container_sizes)
+    c_mi_s = min(container_sizes)
+    c_avg_s = sum(container_sizes) / c_am
+    o_am = len(object_sizes)
+    o_ma_s = max(object_sizes)
+    o_mi_s = min(object_sizes)
+    o_avg_s = sum(object_sizes) / o_am
+    parsed_stats = dict([('account_amount', a_am), ('account_max_size', a_ma_s), ('account_min_size', a_mi_s),
+                        ('account_avg_size', a_avg_s), ('total_size', t_s), ('container_amount', c_am),
+                        ('container_max_size', c_ma_s), ('container_min_size', c_mi_s), ('container_avg_size', c_avg_s),
+                        ('object_amount', o_am), ('object_max_size', o_ma_s), ('object_min_size', o_mi_s),
+                        ('object_avg_size', o_avg_s)])
+    parsed_stats = prettyfy_size([parsed_stats,], raw_output)
+    if not path:
+        fd = sys.stdout
+        csv_write(fd, o_order, parsed_stats)
+    else:
+        with open(path, "w") as fd:
+            csv_write(fd, o_order, parsed_stats)
+        fd.close()
 
 def main():
     parser = argparse.ArgumentParser(add_help=True)
     parser.add_argument('-r', action='store_true',
                         dest="raw_output",
                         help='No human output')
+    parser.add_argument('-d', action='store_true',
+                        dest="detailed",
+                        help='Get a detailed output')
     parser.add_argument('--endpoint-type',
                         metavar='ENDPOINT_TYPE',
                         type=str,
                         default='public', help='The endpoint type')
+    parser.add_argument('--file-path',
+                        metavar='PATH',
+                        type=str, default=None,
+                        help='File to output stats results')
     parser.add_argument('auth_url', metavar='AUTH_URL', type=str,
                         help='The Keystone auth URL')
     parser.add_argument('tenant_user', metavar='TENANT:USER', type=str,
@@ -82,52 +246,23 @@ def main():
                                               args.password)
     bare_storage_url = (args.bare_storage_url and args.bare_storage_url or
                         storage_url[:storage_url.find('AUTH_')] + "AUTH_")
-    total_size = 0
-    total_containers = 0
-    total_objects = 0
-
-    T_STATS = {}
+    os_options = {
+        'endpoint_type': args.endpoint_type,
+    }
     tenant_lists = keystone_cnx.tenants.list()
+    stats = []
+    pile = eventlet.GreenPile(size_or_pool=10)
     for tenant in tenant_lists:
-        tenant_storage_url = bare_storage_url + tenant.id
-        os_options = {
-            'endpoint_type': args.endpoint_type,
-        }
-        cnx = swiftclient.client.Connection(
-            authurl=None, user=None, key=None,
-            preauthurl=tenant_storage_url,
-            os_options=os_options,
-            preauthtoken=admin_token,
-            retries=MAX_RETRIES)
         try:
-            head = cnx.head_account()
-        # TOO BUSY
+            pile.spawn(retrieve_account_stats, tenant, bare_storage_url, os_options, admin_token)
         except(swiftclient.client.ClientException), x:
             print x
             continue
-        total_size += int(head['x-account-bytes-used'])
-        total_containers += int(head['x-account-container-count'])
-        total_objects += int(head['x-account-object-count'])
-
-        try:
-            email = keystone_cnx.users.list(tenant_id=tenant.id)[0].email
-        except(AttributeError): # noemail
-            email = ""
-
-        T_STATS[tenant.id] = (email, tenant.id,
-                              tenant.name,
-                              head['x-account-bytes-used'],
-                              head['x-account-container-count'],
-                              head['x-account-object-count'])
-
-    size = (prettysize and not args.raw_output) and \
-        prettysize(total_size) or total_size
-    s = "## Total size: %s, Total containers: %d, Total objects: %d"
-    s += ", Tenants: %d"
-    print s % (size, total_containers, total_objects, len(tenant_lists))
-    print "# email, tenant_id, tenant_name, bytes_used, container_count, objects_count"
-    for x in T_STATS:
-        print ", ".join(T_STATS[x])
+    for ret in pile:
+        stats.append(ret)
+    if args.detailed:
+        report_detailed_stats(stats, raw_output=args.raw_output, path=args.file_path+'-detailed')
+    report_global_stats(stats, raw_output=args.raw_output, path=args.file_path)
 
 if __name__ == '__main__':
     main()
