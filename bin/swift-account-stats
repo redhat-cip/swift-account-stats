@@ -1,0 +1,133 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# Copyright (C) 2013 eNovance SAS <licensing@enovance.com>
+#
+# Author: Chmouel Boudjnah <chmouel@enovance.com>
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+"""Simple script to get a global usage of a swift cluster. Install the
+pypi module ```hurry.filesize``` to get prettier size output (by
+default in bytes).
+
+eg: swift-df.py http://localhost:5000/v2.0 tenant:admin ADMIN
+First argument is the AUTH_URL
+Second argument is the ADMIN_TENANT:ADMIN_USER (i.e: tenant:admin)
+Third argument is the ADMIN_PASSWORD
+
+"""
+import argparse
+
+import keystoneclient.v2_0.client
+import swiftclient
+
+import sys
+
+MAX_RETRIES = 10
+
+# Nicer filesize reporting make it optional
+try:
+    import hurry.filesize
+    prettysize = hurry.filesize.size
+except ImportError:
+    prettysize = None
+
+
+def get_swift_auth(auth_url, tenant, user, password):
+    """Get swift connexion from args."""
+    return swiftclient.client.Connection(
+        auth_url,
+        '%s:%s' % (tenant, user),
+        password,
+        auth_version=2).get_auth()
+
+
+def main():
+    parser = argparse.ArgumentParser(add_help=True)
+    parser.add_argument('-r', action='store_true',
+                        dest="raw_output",
+                        help='No human output')
+    parser.add_argument('--endpoint-type',
+                        metavar='ENDPOINT_TYPE',
+                        type=str,
+                        default='public', help='The endpoint type')
+    parser.add_argument('auth_url', metavar='AUTH_URL', type=str,
+                        help='The Keystone auth URL')
+    parser.add_argument('tenant_user', metavar='TENANT:USER', type=str,
+                        help='The admin tenant and user')
+    parser.add_argument('password', metavar='PASSWORD', type=str,
+                        help='The admin password')
+    parser.add_argument('--bare_storage_url', metavar='BARE_STORAGE_URL',
+                        type=str)
+
+    args = parser.parse_args()
+    (admin_tenant, admin_user) = args.tenant_user.split(':')
+    keystone_cnx = keystoneclient.v2_0.client.Client(auth_url=args.auth_url,
+                                                     username=admin_user,
+                                                     password=args.password,
+                                                     tenant_name=admin_tenant)
+
+    storage_url, admin_token = get_swift_auth(args.auth_url,
+                                              admin_tenant,
+                                              admin_user,
+                                              args.password)
+    bare_storage_url = (args.bare_storage_url and args.bare_storage_url or
+                        storage_url[:storage_url.find('AUTH_')] + "AUTH_")
+    total_size = 0
+    total_containers = 0
+    total_objects = 0
+
+    T_STATS = {}
+    tenant_lists = keystone_cnx.tenants.list()
+    for tenant in tenant_lists:
+        tenant_storage_url = bare_storage_url + tenant.id
+        os_options = {
+            'endpoint_type': args.endpoint_type,
+        }
+        cnx = swiftclient.client.Connection(
+            authurl=None, user=None, key=None,
+            preauthurl=tenant_storage_url,
+            os_options=os_options,
+            preauthtoken=admin_token,
+            retries=MAX_RETRIES)
+        try:
+            head = cnx.head_account()
+        # TOO BUSY
+        except(swiftclient.client.ClientException), x:
+            print x
+            continue
+        total_size += int(head['x-account-bytes-used'])
+        total_containers += int(head['x-account-container-count'])
+        total_objects += int(head['x-account-object-count'])
+
+        try:
+            email = keystone_cnx.users.list(tenant_id=tenant.id)[0].email
+        except(AttributeError): # noemail
+            email = ""
+
+        T_STATS[tenant.id] = (email, tenant.id,
+                              tenant.name,
+                              head['x-account-bytes-used'],
+                              head['x-account-container-count'],
+                              head['x-account-object-count'])
+
+    size = (prettysize and not args.raw_output) and \
+        prettysize(total_size) or total_size
+    s = "## Total size: %s, Total containers: %d, Total objects: %d"
+    s += ", Tenants: %d"
+    print s % (size, total_containers, total_objects, len(tenant_lists))
+    print "# email, tenant_id, tenant_name, bytes_used, container_count, objects_count"
+    for x in T_STATS:
+        print ", ".join(T_STATS[x])
+
+if __name__ == '__main__':
+    main()
