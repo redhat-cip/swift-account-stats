@@ -42,13 +42,14 @@ eventlet.patcher.monkey_patch()
 #TODO(fbo): Could add content_type repartition
 
 
-def get_swift_auth(auth_url, tenant, user, password):
-    """Get swift connexion from args."""
+def get_swift_auth(auth_url, tenant, user, password, os_options):
+    """Get swift connection from args."""
     return swiftclient.client.Connection(
         auth_url,
         '%s:%s' % (tenant, user),
         password,
-        auth_version=2).get_auth()
+        auth_version=2,
+        os_options=os_options).get_auth()
 
 
 def main():
@@ -83,15 +84,17 @@ def main():
                                                      password=args.password,
                                                      tenant_name=admin_tenant)
 
-    storage_url, admin_token = get_swift_auth(args.auth_url,
-                                              admin_tenant,
-                                              admin_user,
-                                              args.password)
-    bare_storage_url = (args.bare_storage_url and args.bare_storage_url or
-                        storage_url[:storage_url.find('AUTH_')] + "AUTH_")
     os_options = {
         'endpoint_type': args.endpoint_type,
     }
+    storage_url, admin_token = get_swift_auth(args.auth_url,
+                                              admin_tenant,
+                                              admin_user,
+                                              args.password,
+                                              os_options)
+    bare_storage_url = (args.bare_storage_url and args.bare_storage_url or
+                        storage_url[:storage_url.find('AUTH_')] + "AUTH_")
+
     tenant_lists = keystone_cnx.tenants.list()
     stats = []
     pile = eventlet.GreenPile(size_or_pool=10)
