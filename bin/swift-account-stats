@@ -76,6 +76,10 @@ def main():
                         help='The admin password')
     parser.add_argument('--bare_storage_url', metavar='BARE_STORAGE_URL',
                         type=str)
+    parser.add_argument('--tenants', metavar='TENANT1,...,TENANTn', type=str,
+                        help='list of comma-separated tenants to scan,'
+                             ' defaults to all')
+
 
     args = parser.parse_args()
     (admin_tenant, admin_user) = args.tenant_user.split(':')
@@ -95,7 +99,20 @@ def main():
     bare_storage_url = (args.bare_storage_url and args.bare_storage_url or
                         storage_url[:storage_url.find('AUTH_')] + "AUTH_")
 
-    tenant_lists = keystone_cnx.tenants.list()
+    tenants = keystone_cnx.tenants.list()
+    tenant_lists = []
+    if args.tenants:
+        args_tenants = args.tenants.split(',')
+        for t in args_tenants:
+            valid = [tenant for tenant in tenants
+                     if (t == tenant.name or t == tenant.id)]
+            if valid:
+                tenant_lists.append(valid[0])
+            else:
+                print >> sys.stderr, "tenant %s not found, skipping." % t
+    else:
+        #print "# Listing all available tenants"
+        tenant_lists = tenants
     stats = []
     pile = eventlet.GreenPile(size_or_pool=10)
     for tenant in tenant_lists:

@@ -1,7 +1,7 @@
-Swift-account-stat
-==================
+Swift-account-stats
+===================
 
-swist-acount-stat is a tool to report a bunch of stat
+swist-account-stats is a tool to report a bunch of statistics
 on swift usage at tenant level and global level.
 The tenant used to query all swift account must be configured
 to own the ResellerAdmin role in keystone.
@@ -69,4 +69,12 @@ To get a detailed usage by tenant (account) :
     account_63TJQORI,3,17K,1K,11K,container_U8U3EVI9,2,1K,0B,679B
     account_O1LO7CYR,3,12K,2K,8K,container_5EPFN697,2,2K,0B,1K
 
-The '--file-path' option can be use to export results in a CSV file.
+To limit the statistics to a list of tenants (names or ids), use the "--tenants" options :
+
+    $ swift-account-stats http://localhost:5000/v2.0/ admin:admin admin --tenants TestTenant1,0ae3843b392dff3a
+    account_amount,account_max_size,account_min_size,account_avg_size,total_size,container_amount,container_max_size,container_min_size,container_avg_size,object_amount,object_max_size,object_min_size,object_avg_size
+    2,70M,20M,45M,90M,3,45M,20M,30M,6,20M,10M,15M
+
+The --tenants option can be used with the other options, like -r or -d.
+
+The '--file-path' option can be used to export results in a CSV file.
