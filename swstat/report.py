@@ -37,7 +37,7 @@ def prettyfy_size(parsed_stats, raw_output):
     if prettysize and not raw_output:
         temp_stats = []
         for s in parsed_stats:
-            t_s = {k: prettysize(v) for k, v in s.iteritems()
+            t_s = {k: prettysize(v and float(v) or 0) for k, v in s.iteritems()
                    if k.endswith('_size')}
             t_s.update({k: v for k, v in s.iteritems()
                         if not k.endswith('_size')})
@@ -92,16 +92,17 @@ def report_global_stats(stats, raw_output, path=None):
             c_am += 1
             container_sizes.append(cstat['container_size'])
             object_sizes.extend(cstat['object_sizes'])
-    a_ma_s = max(account_sizes)
-    a_mi_s = min(account_sizes)
-    a_avg_s = sum(account_sizes) / a_am
-    c_ma_s = max(container_sizes)
-    c_mi_s = min(container_sizes)
-    c_avg_s = sum(container_sizes) / c_am
+    a_ma_s = (len(account_sizes) == 0) and -1 or max(account_sizes)
+    a_mi_s = (len(account_sizes) == 0) and -1 or min(account_sizes)
+    a_avg_s = (len(account_sizes) == 0) and -1 or ( sum(account_sizes) / a_am )
+    c_ma_s = (len(container_sizes) == 0) and -1 or max(container_sizes)
+    c_mi_s = (len(container_sizes) == 0) and -1 or min(container_sizes)
+    c_avg_s = (len(container_sizes) == 0) and -1 or \
+                                    ( sum(container_sizes) / c_am )
     o_am = len(object_sizes)
-    o_ma_s = max(object_sizes)
-    o_mi_s = min(object_sizes)
-    o_avg_s = sum(object_sizes) / o_am
+    o_ma_s = (len(object_sizes) == 0) and -1 or max(object_sizes)
+    o_mi_s = (len(object_sizes) == 0) and -1 or min(object_sizes)
+    o_avg_s = (len(object_sizes) == 0) and -1 or ( sum(object_sizes) / o_am )
     parsed_stats = dict([('account_amount', a_am),
                         ('account_max_size', a_ma_s),
                         ('account_min_size', a_mi_s),
