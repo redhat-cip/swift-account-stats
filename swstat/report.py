@@ -37,10 +37,12 @@ def prettyfy_size(parsed_stats, raw_output):
     if prettysize and not raw_output:
         temp_stats = []
         for s in parsed_stats:
-            t_s = {k: prettysize(v and float(v) or 0) for k, v in s.iteritems()
-                   if k.endswith('_size')}
-            t_s.update({k: v for k, v in s.iteritems()
-                        if not k.endswith('_size')})
+            t_s = {}
+            for k, v in s.iteritems():
+                if k.endswith('_size'):
+                    t_s[k] = prettysize(v and float(v) or 0)
+                else:
+                    t_s[k] = v
             temp_stats.append(t_s)
         return temp_stats
     return parsed_stats
