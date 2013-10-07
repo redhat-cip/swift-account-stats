@@ -63,6 +63,7 @@ def retrieve_account_stats(tenant,
     else:
         name = tenant.name
     account_stats = {'account_name': name,
+                     'account_id' : tenant.id,
                      'account_size': account_size,
                      'container_amount': len(container_names),
                      'container_max_size': ma,

@@ -56,17 +56,17 @@ To get the global usage, the '-r' option returns :
 To get a detailed usage by tenant (account) :
 
     $ swift-account-stats -d http://192.168.56.101:5000/v2.0/ admin:admin wxcvbn
-    email,account_name,account_size,container_amount,container_max_size,container_min_size,container_avg_size,container_name,container_size,object_amount,object_max_size,object_min_size,object_avg_size
-    tata@toto.com,tenant2,15M,5,5M,1M,3M,container0,1M,1,1M,1M,1M
-    tata@toto.com,tenant2,15M,5,5M,1M,3M,container1,2M,1,2M,2M,2M
-    tata@toto.com,tenant2,15M,5,5M,1M,3M,container2,3M,1,3M,3M,3M
-    tata@toto.com,tenant2,15M,5,5M,1M,3M,container3,4M,1,4M,4M,4M
-    tata@toto.com,tenant2,15M,5,5M,1M,3M,container4,5M,1,5M,5M,5M
-    titi@toto.com,tenant1,15M,5,5M,1M,3M,container0,1M,1,1M,1M,1M
-    titi@toto.com,tenant1,15M,5,5M,1M,3M,container1,2M,1,2M,2M,2M
-    titi@toto.com,tenant1,15M,5,5M,1M,3M,container2,3M,1,3M,3M,3M
-    titi@toto.com,tenant1,15M,5,5M,1M,3M,container3,4M,1,4M,4M,4M
-    titi@toto.com,tenant1,15M,5,5M,1M,3M,container4,5M,1,5M,5M,5M
+    email,account_name,account_id,account_size,container_amount,container_max_size,container_min_size,container_avg_size,container_name,container_size,object_amount,object_max_size,object_min_size,object_avg_size
+    tata@toto.com,tenant2,e02c6f7d776847e59aef46b93617e94f,15M,5,5M,1M,3M,container0,1M,1,1M,1M,1M
+    tata@toto.com,tenant2,e02c6f7d776847e59aef46b93617e94f,15M,5,5M,1M,3M,container1,2M,1,2M,2M,2M
+    tata@toto.com,tenant2,e02c6f7d776847e59aef46b93617e94f,15M,5,5M,1M,3M,container2,3M,1,3M,3M,3M
+    tata@toto.com,tenant2,e02c6f7d776847e59aef46b93617e94f,15M,5,5M,1M,3M,container3,4M,1,4M,4M,4M
+    tata@toto.com,tenant2,e02c6f7d776847e59aef46b93617e94f,15M,5,5M,1M,3M,container4,5M,1,5M,5M,5M
+    titi@toto.com,tenant1,f11eba6f05e643abadb030dc9ddb5e4a,15M,5,5M,1M,3M,container0,1M,1,1M,1M,1M
+    titi@toto.com,tenant1,f11eba6f05e643abadb030dc9ddb5e4a,15M,5,5M,1M,3M,container1,2M,1,2M,2M,2M
+    titi@toto.com,tenant1,f11eba6f05e643abadb030dc9ddb5e4a,15M,5,5M,1M,3M,container2,3M,1,3M,3M,3M
+    titi@toto.com,tenant1,f11eba6f05e643abadb030dc9ddb5e4a,15M,5,5M,1M,3M,container3,4M,1,4M,4M,4M
+    titi@toto.com,tenant1,f11eba6f05e643abadb030dc9ddb5e4a,15M,5,5M,1M,3M,container4,5M,1,5M,5M,5M
 
 
 To limit the statistics to a list of tenants (names or ids), use the "--tenants" options :
