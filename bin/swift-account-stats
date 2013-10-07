@@ -117,8 +117,12 @@ def main():
     pile = eventlet.GreenPile(size_or_pool=10)
     for tenant in tenant_lists:
         try:
+            email = keystone_cnx.users.list(tenant_id=tenant.id)[0].email
+        except(AttributeError):
+            email = "None"
+        try:
             pile.spawn(swstat.retrieve_account_stats, tenant,
-                       bare_storage_url, os_options, admin_token)
+                       bare_storage_url, os_options, admin_token, email)
         except(swiftclient.client.ClientException), x:
             print x
             continue

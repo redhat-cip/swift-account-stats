@@ -37,7 +37,11 @@ def browse_container(cnx, container):
     return container_size, object_names, object_sizes
 
 
-def retrieve_account_stats(tenant, bare_storage_url, os_options, admin_token):
+def retrieve_account_stats(tenant,
+                           bare_storage_url,
+                           os_options,
+                           admin_token,
+                           email=""):
     tenant_storage_url = bare_storage_url + tenant.id
     cnx = swiftclient.client.Connection(
         authurl=None, user=None, key=None,
@@ -63,7 +67,8 @@ def retrieve_account_stats(tenant, bare_storage_url, os_options, admin_token):
                      'container_amount': len(container_names),
                      'container_max_size': ma,
                      'container_min_size': mi,
-                     'container_avg_size': av}
+                     'container_avg_size': av,
+                     'email': email}
 
     containers_stats = []
     for container in container_names:

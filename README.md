@@ -8,6 +8,7 @@ to own the ResellerAdmin role in keystone.
 
 For tenant (account) level the given stats are as follow:
 
+ - account_size
  - container_amount
  - container_max_size
  - container_min_size
@@ -15,6 +16,7 @@ For tenant (account) level the given stats are as follow:
 
 And for each containers:
 
+ - container_size
  - object_amount
  - object_max_size
  - object_min_size
@@ -54,20 +56,18 @@ To get the global usage, the '-r' option returns :
 To get a detailed usage by tenant (account) :
 
     $ swift-account-stats -d http://192.168.56.101:5000/v2.0/ admin:admin wxcvbn
-    account_name,container_amount,container_max_size,container_min_size,container_avg_size,container_name,object_amount,object_max_size,object_min_size,object_avg_size
-    account_FIOKXEC4,3,16K,5K,12K,container_I1PECAGR,2,16K,0B,8K
-    account_FIOKXEC4,3,16K,5K,12K,container_NKS4CB7R s,2,15K,0B,7K
-    account_FIOKXEC4,3,16K,5K,12K,container_SEJV2ZGJ_ʶͰΏ,2,5K,0B,2K
-    account_B4WAH0OS,3,16K,3K,11K,container_8KPQC7FJ,2,15K,0B,7K
-    account_B4WAH0OS,3,16K,3K,11K,container_A7PJ60OL_ѪÆř,2,16K,0B,8K
-    account_B4WAH0OS,3,16K,3K,11K,container_RZFXL9XE s,2,3K,0B,1K
-    account_F1DWWVK6,3,14K,5K,8K,container_GOX0KRPI_ϪѪÆ,2,6K,0B,3K
-    account_F1DWWVK6,3,14K,5K,8K,container_HJQLQC1Q,2,14K,0B,7K
-    account_F1DWWVK6,3,14K,5K,8K,container_NSYWSYRF s,2,5K,0B,2K
-    account_63TJQORI,3,17K,1K,11K,container_3STOBY0O_řɧÆ,2,17K,0B,8K
-    account_63TJQORI,3,17K,1K,11K,container_C409F1OW s,2,14K,0B,7K
-    account_63TJQORI,3,17K,1K,11K,container_U8U3EVI9,2,1K,0B,679B
-    account_O1LO7CYR,3,12K,2K,8K,container_5EPFN697,2,2K,0B,1K
+    email,account_name,account_size,container_amount,container_max_size,container_min_size,container_avg_size,container_name,container_size,object_amount,object_max_size,object_min_size,object_avg_size
+    tata@toto.com,tenant2,15M,5,5M,1M,3M,container0,1M,1,1M,1M,1M
+    tata@toto.com,tenant2,15M,5,5M,1M,3M,container1,2M,1,2M,2M,2M
+    tata@toto.com,tenant2,15M,5,5M,1M,3M,container2,3M,1,3M,3M,3M
+    tata@toto.com,tenant2,15M,5,5M,1M,3M,container3,4M,1,4M,4M,4M
+    tata@toto.com,tenant2,15M,5,5M,1M,3M,container4,5M,1,5M,5M,5M
+    titi@toto.com,tenant1,15M,5,5M,1M,3M,container0,1M,1,1M,1M,1M
+    titi@toto.com,tenant1,15M,5,5M,1M,3M,container1,2M,1,2M,2M,2M
+    titi@toto.com,tenant1,15M,5,5M,1M,3M,container2,3M,1,3M,3M,3M
+    titi@toto.com,tenant1,15M,5,5M,1M,3M,container3,4M,1,4M,4M,4M
+    titi@toto.com,tenant1,15M,5,5M,1M,3M,container4,5M,1,5M,5M,5M
+
 
 To limit the statistics to a list of tenants (names or ids), use the "--tenants" options :
 

@@ -49,7 +49,7 @@ def prettyfy_size(parsed_stats, raw_output):
 
 
 def report_detailed_stats(stats, raw_output, path=None):
-    o_order = ('account_name', 'account_size', 
+    o_order = ('email', 'account_name', 'account_size', 
                'container_amount', 'container_max_size',
                'container_min_size', 'container_avg_size',
                'container_name', 'container_size', 
