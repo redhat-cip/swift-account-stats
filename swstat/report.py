@@ -49,9 +49,11 @@ def prettyfy_size(parsed_stats, raw_output):
 
 
 def report_detailed_stats(stats, raw_output, path=None):
-    o_order = ('account_name', 'container_amount', 'container_max_size',
+    o_order = ('account_name', 'account_size', 
+               'container_amount', 'container_max_size',
                'container_min_size', 'container_avg_size',
-               'container_name', 'object_amount', 'object_max_size',
+               'container_name', 'container_size', 
+               'object_amount', 'object_max_size',
                'object_min_size', 'object_avg_size')
     parsed_stats = []
     for xstat in stats:
