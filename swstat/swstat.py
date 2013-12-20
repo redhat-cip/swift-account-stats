@@ -30,7 +30,12 @@ def browse_account(cnx):
 
 
 def browse_container(cnx, container):
-    head, objects = cnx.get_container(container, full_listing=True)
+    try:
+        head, objects = cnx.get_container(container, full_listing=True)
+    except(swiftclient.exceptions.ClientException):
+        # When container is somehow not available
+        return 0, [], []
+
     container_size = int(head['x-container-bytes-used'])
     object_names = [obj['name'] for obj in objects]
     object_sizes = [int(obj['bytes']) for obj in objects]
