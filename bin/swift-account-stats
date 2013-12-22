@@ -87,17 +87,20 @@ def main():
                                                      username=admin_user,
                                                      password=args.password,
                                                      tenant_name=admin_tenant)
+    admin_token = keystone_cnx.auth_token
 
     os_options = {
         'endpoint_type': args.endpoint_type,
     }
-    storage_url, admin_token = get_swift_auth(args.auth_url,
-                                              admin_tenant,
-                                              admin_user,
-                                              args.password,
-                                              os_options)
-    bare_storage_url = (args.bare_storage_url and args.bare_storage_url or
-                        storage_url[:storage_url.find('AUTH_')] + "AUTH_")
+    if args.bare_storage_url is None:
+        storage_url, admin_token = get_swift_auth(args.auth_url,
+                                                  admin_tenant,
+                                                  admin_user,
+                                                  args.password,
+                                                  os_options)
+
+    bare_storage_url = (args.bare_storage_url or
+                        storage_url[:storage_url.find('AUTH')] + "AUTH_")
 
     tenants = keystone_cnx.tenants.list()
     tenant_lists = []
