@@ -20,6 +20,11 @@ import swiftclient
 
 MAX_RETRIES = 10
 
+try:
+    from swiftclient.exceptions import ClientException
+except ImportError:
+    # swiftclient-1.4 support
+    from swiftclient import ClientException
 
 def browse_account(cnx):
     head, containers = cnx.get_account(full_listing=True)
@@ -32,7 +37,7 @@ def browse_account(cnx):
 def browse_container(cnx, container):
     try:
         head, objects = cnx.get_container(container, full_listing=True)
-    except(swiftclient.exceptions.ClientException):
+    except(ClientException):
         # When container is somehow not available
         return 0, [], []
 
