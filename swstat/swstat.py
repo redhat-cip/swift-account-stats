@@ -26,6 +26,7 @@ except ImportError:
     # swiftclient-1.4 support
     from swiftclient import ClientException
 
+
 def browse_account(cnx):
     head, containers = cnx.get_account(full_listing=True)
     account_size = int(head['x-account-bytes-used'])
@@ -73,7 +74,7 @@ def retrieve_account_stats(tenant,
     else:
         name = tenant.name
     account_stats = {'account_name': name,
-                     'account_id' : tenant.id,
+                     'account_id': tenant.id,
                      'account_size': account_size,
                      'container_amount': len(container_names),
                      'container_max_size': ma,

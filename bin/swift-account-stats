@@ -29,6 +29,7 @@ Third argument is the ADMIN_PASSWORD
 """
 import argparse
 import eventlet
+import sys
 
 import keystoneclient.v2_0.client
 import swiftclient
@@ -79,7 +80,6 @@ def main():
     parser.add_argument('--tenants', metavar='TENANT1,...,TENANTn', type=str,
                         help='list of comma-separated tenants to scan,'
                              ' defaults to all')
-
 
     args = parser.parse_args()
     (admin_tenant, admin_user) = args.tenant_user.split(':')
