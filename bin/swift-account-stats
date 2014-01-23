@@ -61,6 +61,9 @@ def main():
     parser.add_argument('-d', action='store_true',
                         dest="detailed",
                         help='Get a detailed output')
+    parser.add_argument('-z', action='store_true',
+                        dest="exclude_zero",
+                        help='Exclude accounts of zero size in compiled stats')
     parser.add_argument('--endpoint-type',
                         metavar='ENDPOINT_TYPE',
                         type=str,
@@ -130,7 +133,10 @@ def main():
             print x
             continue
     for ret in pile:
-        stats.append(ret)
+        if not args.exclude_zero:
+            stats.append(ret)
+        elif ret[0]['account_size']:
+            stats.append(ret)
     if args.detailed:
         path = None
         if args.file_path is not None:
